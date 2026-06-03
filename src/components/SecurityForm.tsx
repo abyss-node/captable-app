@@ -10,6 +10,7 @@ interface Props {
   kind: SecurityKind;
   existing?: Security;
   stakeholders: Stakeholder[];
+  fmvPerShare?: number;
   onSave: (sec: Security, newStakeholder?: Stakeholder) => void;
   onCancel: () => void;
 }
@@ -38,7 +39,7 @@ function Field({ label, children }: { label: string; children: React.ReactNode }
 const inputCls = 'bg-slate-800/60 border border-slate-700 rounded px-3 py-1.5 text-xs text-slate-200 outline-none focus:border-slate-500 tabular-nums w-full';
 const selectCls = inputCls;
 
-export default function SecurityForm({ kind, existing, stakeholders, onSave, onCancel }: Props) {
+export default function SecurityForm({ kind, existing, stakeholders, fmvPerShare, onSave, onCancel }: Props) {
   const isNew = !existing;
 
   // ── Stakeholder selection ──────────────────────────────────────────────────
@@ -68,7 +69,7 @@ export default function SecurityForm({ kind, existing, stakeholders, onSave, onC
   // ── Option ─────────────────────────────────────────────────────────────────
   const o = existing?.kind === 'option' ? existing : null;
   const [oShares, setOShares]       = useState(String(o?.shares ?? 100_000));
-  const [oStrike, setOStrike]       = useState(String(o?.strikePrice ?? 0.10));
+  const [oStrike, setOStrike]       = useState(String(o?.strikePrice ?? fmvPerShare ?? 0.10));
   const [oGrant, setOGrant]         = useState(o?.grantDate ?? new Date().toISOString().slice(0, 10));
   const [oVesting, setOVesting]     = useState(String(o?.vestingMonths ?? 48));
   const [oCliff, setOCliff]         = useState(String(o?.cliffMonths ?? 12));
@@ -194,7 +195,17 @@ export default function SecurityForm({ kind, existing, stakeholders, onSave, onC
       {kind === 'option' && <>
         <div className="grid grid-cols-2 gap-3">
           <Field label="Shares"><input className={inputCls} type="number" value={oShares} onChange={e => setOShares(e.target.value)} /></Field>
-          <Field label="Strike price ($)"><input className={inputCls} type="number" step="0.0001" value={oStrike} onChange={e => setOStrike(e.target.value)} /></Field>
+          <div className="flex flex-col gap-0.5">
+            <Field label="Strike price ($)">
+              <input className={inputCls} type="number" step="0.0001" value={oStrike} onChange={e => setOStrike(e.target.value)} />
+            </Field>
+            {fmvPerShare && (
+              <p className="text-[10px] text-amber-500/70">
+                409A FMV: ${fmvPerShare.toFixed(4)}/sh — strike must equal FMV at grant date
+                {Number(oStrike) < fmvPerShare * 0.99 && <span className="text-red-400"> · below FMV</span>}
+              </p>
+            )}
+          </div>
         </div>
         <Field label="Grant date"><input className={inputCls} type="date" value={oGrant} onChange={e => setOGrant(e.target.value)} /></Field>
         <div className="grid grid-cols-2 gap-3">

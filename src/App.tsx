@@ -70,12 +70,14 @@ export default function App() {
   });
   const [shareCopied, setShareCopied] = useState(false);
   const [savedFlash, setSavedFlash] = useState(false);
-  const [editingField, setEditingField] = useState<'name' | 'auth' | null>(null);
+  const [editingField, setEditingField] = useState<'name' | 'auth' | 'fmv' | null>(null);
   const [draftName, setDraftName] = useState('');
   const [draftAuth, setDraftAuth] = useState('');
+  const [draftFMV, setDraftFMV] = useState('');
   const [authError, setAuthError] = useState(false);
   const nameInputRef = useRef<HTMLInputElement>(null);
   const authInputRef = useRef<HTMLInputElement>(null);
+  const fmvInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     document.title = `${capTable.companyName} · Cap Table`;
@@ -106,6 +108,18 @@ export default function App() {
     updateCapTable({ ...capTable, authorizedShares: val });
     setEditingField(null);
     setAuthError(false);
+  }
+
+  function startEditFMV() {
+    setDraftFMV(capTable.fmvPerShare ? String(capTable.fmvPerShare) : '');
+    setEditingField('fmv');
+    setTimeout(() => fmvInputRef.current?.select(), 0);
+  }
+
+  function commitFMV() {
+    const val = Number(draftFMV);
+    updateCapTable({ ...capTable, fmvPerShare: val > 0 ? val : undefined });
+    setEditingField(null);
   }
 
   function updateCapTable(ct: CapTable) {
@@ -247,6 +261,36 @@ export default function App() {
               </button>
             )}
             {authError && <span className="text-red-400 text-[10px]">must exceed issued</span>}
+          </span>
+          <span className="flex items-center gap-1">
+            409A:{' '}
+            {editingField === 'fmv' ? (
+              <input
+                ref={fmvInputRef}
+                type="number"
+                step="0.01"
+                value={draftFMV}
+                onChange={e => setDraftFMV(e.target.value)}
+                onBlur={commitFMV}
+                onKeyDown={e => {
+                  if (e.key === 'Enter') commitFMV();
+                  if (e.key === 'Escape') setEditingField(null);
+                }}
+                className="w-20 bg-transparent border-b border-slate-500 outline-none tabular-nums text-amber-300"
+                placeholder="0.00"
+              />
+            ) : (
+              <button
+                onClick={startEditFMV}
+                className="tabular-nums transition-colors hover:text-white"
+                title="Click to set current 409A fair market value per share"
+              >
+                {capTable.fmvPerShare
+                  ? <span className="text-amber-400">${capTable.fmvPerShare.toFixed(2)}/sh</span>
+                  : <span className="text-slate-600 hover:text-slate-400">not set</span>
+                }
+              </button>
+            )}
           </span>
           {savedFlash && (
             <span className="text-[10px] text-emerald-500 transition-opacity">saved</span>

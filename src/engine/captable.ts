@@ -75,6 +75,7 @@ export type Security = CommonStock | PreferredStock | StockOption | SAFE | Conve
 export interface CapTable {
   companyName: string;
   authorizedShares: number;
+  fmvPerShare?: number; // current 409A fair market value
   stakeholders: Stakeholder[];
   securities: Security[];
 }
@@ -425,6 +426,8 @@ export interface WaterfallRow {
   participationAmount: number;
   totalPayout: number;
   ownership: number;
+  shares: number;
+  investmentAmount: number; // 0 for common; used to compute MOIC for preferred
 }
 
 export function computeWaterfall(
@@ -526,6 +529,8 @@ export function computeWaterfall(
     participationAmount: 0,
     totalPayout: 0,
     ownership: sec.shares / totalShares,
+    shares: sec.shares,
+    investmentAmount: sec.kind === 'preferred' ? sec.investment : 0,
   }));
 
   // Phase 1: Liquidation preferences for preferred

@@ -254,6 +254,7 @@ export default function LedgerView({ capTable, onUpdate }: Props) {
             kind={modal.mode === 'add' ? modal.kind : modal.security.kind}
             existing={modal.mode === 'edit' ? modal.security : undefined}
             stakeholders={capTable.stakeholders}
+            fmvPerShare={capTable.fmvPerShare}
             onSave={handleSave}
             onCancel={() => setModal(null)}
           />

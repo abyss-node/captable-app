@@ -132,7 +132,7 @@ export default function WaterfallView({ capTable, roundResult, roundInputs, roun
       <table className="w-full text-xs">
         <thead>
           <tr className="border-b border-slate-700">
-            {['Stakeholder', 'Type', 'Preference', 'Participation', 'Total Payout', '% of Exit'].map(h => (
+            {['Stakeholder', 'Type', 'Preference', 'Participation', 'Total Payout', '% of Exit', 'MOIC'].map(h => (
               <th key={h} className="text-left py-1.5 pr-3 last:pr-0 text-slate-500 font-normal">{h}</th>
             ))}
           </tr>
@@ -140,33 +140,45 @@ export default function WaterfallView({ capTable, roundResult, roundInputs, roun
         <tbody>
           {rows.length === 0 && (
             <tr>
-              <td colSpan={6} className="py-4 text-center text-slate-500 text-xs">
+              <td colSpan={7} className="py-4 text-center text-slate-500 text-xs">
                 Run the Round Simulator first to include converted securities, or view founder/employee payouts directly.
               </td>
             </tr>
           )}
-          {rows.map((row, i) => (
-            <tr key={`${row.stakeholderId}-${i}`} className={`border-b border-slate-800 ${row.totalPayout === 0 ? 'opacity-40' : ''}`}>
-              <td className="py-1.5 pr-3 text-slate-200">{row.stakeholderName}</td>
-              <td className="py-1.5 pr-3">
-                <span className={`px-1.5 py-0.5 rounded text-[10px] ${
-                  row.securityKind === 'preferred' ? 'bg-violet-900/50 text-violet-300' : 'bg-sky-900/50 text-sky-300'
-                }`}>
-                  {row.securityKind}
-                </span>
-              </td>
-              <td className="py-1.5 pr-3 tabular-nums text-slate-300">
-                {row.preferenceAmount > 0 ? fmtM(row.preferenceAmount) : '—'}
-              </td>
-              <td className="py-1.5 pr-3 tabular-nums text-slate-300">
-                {row.participationAmount > 0 ? fmtM(row.participationAmount) : '—'}
-              </td>
-              <td className="py-1.5 pr-3 tabular-nums text-white font-medium">{fmtM(row.totalPayout)}</td>
-              <td className="py-1.5 tabular-nums text-slate-400">
-                {exitValuation > 0 ? pct(row.totalPayout / exitValuation) : '—'}
-              </td>
-            </tr>
-          ))}
+          {rows.map((row, i) => {
+            const moic = row.investmentAmount > 0
+              ? row.totalPayout / row.investmentAmount
+              : null;
+            const moicColor = moic === null ? ''
+              : moic >= 3 ? 'text-emerald-400'
+              : moic >= 1 ? 'text-sky-400'
+              : 'text-red-400';
+            return (
+              <tr key={`${row.stakeholderId}-${i}`} className={`border-b border-slate-800 ${row.totalPayout === 0 ? 'opacity-40' : ''}`}>
+                <td className="py-1.5 pr-3 text-slate-200">{row.stakeholderName}</td>
+                <td className="py-1.5 pr-3">
+                  <span className={`px-1.5 py-0.5 rounded text-[10px] ${
+                    row.securityKind === 'preferred' ? 'bg-violet-900/50 text-violet-300' : 'bg-sky-900/50 text-sky-300'
+                  }`}>
+                    {row.securityKind}
+                  </span>
+                </td>
+                <td className="py-1.5 pr-3 tabular-nums text-slate-300">
+                  {row.preferenceAmount > 0 ? fmtM(row.preferenceAmount) : '—'}
+                </td>
+                <td className="py-1.5 pr-3 tabular-nums text-slate-300">
+                  {row.participationAmount > 0 ? fmtM(row.participationAmount) : '—'}
+                </td>
+                <td className="py-1.5 pr-3 tabular-nums text-white font-medium">{fmtM(row.totalPayout)}</td>
+                <td className="py-1.5 pr-3 tabular-nums text-slate-400">
+                  {exitValuation > 0 ? pct(row.totalPayout / exitValuation) : '—'}
+                </td>
+                <td className={`py-1.5 tabular-nums font-medium ${moicColor}`}>
+                  {moic !== null ? `${moic.toFixed(2)}×` : '—'}
+                </td>
+              </tr>
+            );
+          })}
           {rows.length > 0 && (
             <tr className="border-t border-slate-600">
               <td colSpan={4} className="py-1.5 text-slate-400 font-medium">Total Distributed</td>
@@ -174,6 +186,7 @@ export default function WaterfallView({ capTable, roundResult, roundInputs, roun
               <td className="py-1.5 tabular-nums text-slate-400">
                 {exitValuation > 0 ? pct(totalPayout / exitValuation) : '—'}
               </td>
+              <td />
             </tr>
           )}
         </tbody>
