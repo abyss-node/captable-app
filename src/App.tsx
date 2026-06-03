@@ -2,6 +2,7 @@ import { useState } from 'react';
 import type { CapTable, RoundResult } from './engine/captable';
 import { encodeCapTableToHash, decodeCapTableFromHash } from './engine/captable';
 import { INITIAL_CAP_TABLE } from './data/mockData';
+import type { RoundHistory } from './engine/multiRound';
 import LedgerView from './components/LedgerView';
 import RoundSimulator from './components/RoundSimulator';
 import type { SimulatorInputs } from './components/RoundSimulator';
@@ -51,6 +52,7 @@ export default function App() {
   const [activePanel, setActivePanel] = useState<Panel>('ledger');
   const [roundResult, setRoundResult] = useState<RoundResult | null>(null);
   const [roundInputs, setRoundInputs] = useState<SimulatorInputs | null>(null);
+  const [roundHistory, setRoundHistory] = useState<RoundHistory>({ rounds: [] });
   const [shareCopied, setShareCopied] = useState(false);
   const [savedFlash, setSavedFlash] = useState(false);
 
@@ -179,13 +181,18 @@ export default function App() {
               />
             )}
             {activePanel === 'multisim' && (
-              <MultiRoundSimulator baseCapTable={capTable} />
+              <MultiRoundSimulator
+                baseCapTable={capTable}
+                history={roundHistory}
+                onHistoryChange={setRoundHistory}
+              />
             )}
             {activePanel === 'waterfall' && (
               <WaterfallView
                 capTable={capTable}
                 roundResult={roundResult}
                 roundInputs={roundInputs}
+                roundHistory={roundHistory}
               />
             )}
             {activePanel === 'io' && (

@@ -5,6 +5,8 @@ import { simulateNextRound, applyRoundToCapTable } from '../engine/multiRound';
 
 interface Props {
   baseCapTable: CapTable;
+  history: RoundHistory;
+  onHistoryChange: (h: RoundHistory) => void;
 }
 
 const ROUND_PRESETS = ['Seed', 'Series A', 'Series B', 'Series C', 'Series D'];
@@ -25,8 +27,7 @@ function pct(n: number): string {
 
 const inputCls = 'bg-slate-800/60 border border-slate-700 rounded px-3 py-1.5 text-xs text-slate-200 outline-none focus:border-slate-500 tabular-nums w-full';
 
-export default function MultiRoundSimulator({ baseCapTable }: Props) {
-  const [history, setHistory] = useState<RoundHistory>({ rounds: [] });
+export default function MultiRoundSimulator({ baseCapTable, history, onHistoryChange }: Props) {
   const [roundName, setRoundName] = useState('Series A');
   const [preMoney, setPreMoney]     = useState('12000000');
   const [investment, setInvestment] = useState('3000000');
@@ -49,7 +50,7 @@ export default function MultiRoundSimulator({ baseCapTable }: Props) {
         },
         roundName,
       );
-      setHistory(h => ({ rounds: [...h.rounds, record] }));
+      onHistoryChange({ rounds: [...history.rounds, record] });
       // Advance preset for next round
       const idx = ROUND_PRESETS.indexOf(roundName);
       if (idx >= 0 && idx < ROUND_PRESETS.length - 1) {
@@ -61,7 +62,7 @@ export default function MultiRoundSimulator({ baseCapTable }: Props) {
   }
 
   function handleRemoveLast() {
-    setHistory(h => ({ rounds: h.rounds.slice(0, -1) }));
+    onHistoryChange({ rounds: history.rounds.slice(0, -1) });
   }
 
   // Build cumulative ownership after all rounds

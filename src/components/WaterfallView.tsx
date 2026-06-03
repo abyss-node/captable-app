@@ -2,11 +2,14 @@ import { useState, useMemo } from 'react';
 import type { CapTable, RoundResult } from '../engine/captable';
 import { computeWaterfall } from '../engine/captable';
 import type { SimulatorInputs } from './RoundSimulator';
+import type { RoundHistory } from '../engine/multiRound';
+import { applyRoundToCapTable } from '../engine/multiRound';
 
 interface Props {
   capTable: CapTable;
   roundResult: RoundResult | null;
   roundInputs: SimulatorInputs | null;
+  roundHistory: RoundHistory;
 }
 
 function fmtM(n: number): string {
@@ -32,20 +35,32 @@ const COLORS = [
 
 const MAX_EXIT = 100_000_000;
 
-export default function WaterfallView({ capTable, roundResult, roundInputs }: Props) {
+export default function WaterfallView({ capTable, roundResult, roundInputs, roundHistory }: Props) {
   const [exitValuation, setExitValuation] = useState(20_000_000);
+
+  const hasMultiRound = roundHistory.rounds.length > 0;
+
+  // When multi-round history exists, apply all rounds to get the final cap table
+  // and pass it directly — no separate roundResult needed since all preferred
+  // series are already represented as securities in the final table.
+  const finalCapTable = useMemo(() => {
+    if (!hasMultiRound) return capTable;
+    let ct = capTable;
+    for (const r of roundHistory.rounds) ct = applyRoundToCapTable(ct, r);
+    return ct;
+  }, [capTable, roundHistory, hasMultiRound]);
 
   const rows = useMemo(
     () =>
-      computeWaterfall(
-        capTable,
-        roundResult,
-        exitValuation,
-        roundInputs
-          ? { ...roundInputs, conversionDate: new Date() }
-          : undefined,
-      ),
-    [capTable, roundResult, roundInputs, exitValuation],
+      hasMultiRound
+        ? computeWaterfall(finalCapTable, null, exitValuation)
+        : computeWaterfall(
+            capTable,
+            roundResult,
+            exitValuation,
+            roundInputs ? { ...roundInputs, conversionDate: new Date() } : undefined,
+          ),
+    [capTable, finalCapTable, roundResult, roundInputs, roundHistory, exitValuation, hasMultiRound],
   );
 
   const totalPayout = rows.reduce((s, r) => s + r.totalPayout, 0);
@@ -53,7 +68,16 @@ export default function WaterfallView({ capTable, roundResult, roundInputs }: Pr
 
   return (
     <div className="flex flex-col gap-4">
-      <span className="text-xs text-slate-400 uppercase tracking-widest">Liquidation Waterfall</span>
+      <div className="flex items-center justify-between">
+        <span className="text-xs text-slate-400 uppercase tracking-widest">Liquidation Waterfall</span>
+        <span className="text-[10px] text-slate-500">
+          {hasMultiRound
+            ? `${roundHistory.rounds.length} round${roundHistory.rounds.length > 1 ? 's' : ''} · ${roundHistory.rounds.map(r => r.name).join(' → ')}`
+            : roundResult
+            ? 'Series A sim'
+            : 'Pre-round (common only)'}
+        </span>
+      </div>
 
       {/* Slider */}
       <div className="flex flex-col gap-2">
