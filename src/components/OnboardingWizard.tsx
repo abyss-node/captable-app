@@ -265,7 +265,7 @@ export default function OnboardingWizard({ onComplete }: Props) {
               <div className="flex flex-col gap-3">
                 {founders.map((f, i) => (
                   <div key={f.id} className="border border-slate-700/60 rounded p-3 flex flex-col gap-3">
-                    <div className="grid grid-cols-2 gap-3">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                       <Field label={`Founder ${i + 1} name`}>
                         <input
                           className={inputCls}
@@ -296,7 +296,7 @@ export default function OnboardingWizard({ onComplete }: Props) {
                     </label>
 
                     {f.hasVesting && (
-                      <div className="grid grid-cols-2 gap-3 pl-5">
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pl-5">
                         <Field label="Vesting (months)">
                           <input className={inputCls} type="number" value={f.vestingMonths} onChange={e => updateFounder(f.id, { vestingMonths: e.target.value })} />
                         </Field>
@@ -337,7 +337,7 @@ export default function OnboardingWizard({ onComplete }: Props) {
                 <p className="text-xs text-slate-400 uppercase tracking-wider">SAFEs</p>
                 {safes.map(s => (
                   <div key={s.id} className="border border-slate-700/60 rounded p-3 flex flex-col gap-3">
-                    <div className="grid grid-cols-2 gap-3">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                       <Field label="Investor name">
                         <input className={inputCls} value={s.holderName} onChange={e => updateSafe(s.id, { holderName: e.target.value })} placeholder="Sofia Papadopoulos" />
                       </Field>
@@ -345,7 +345,7 @@ export default function OnboardingWizard({ onComplete }: Props) {
                         <input className={inputCls} type="number" value={s.amount} onChange={e => updateSafe(s.id, { amount: e.target.value })} />
                       </Field>
                     </div>
-                    <div className="grid grid-cols-3 gap-3">
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                       <Field label="Type">
                         <select className={inputCls} value={s.safeType} onChange={e => updateSafe(s.id, { safeType: e.target.value as SafeType })}>
                           <option value="cap_only">Cap only</option>
@@ -377,7 +377,7 @@ export default function OnboardingWizard({ onComplete }: Props) {
                 <p className="text-xs text-slate-400 uppercase tracking-wider">Convertible Notes</p>
                 {notes.map(n => (
                   <div key={n.id} className="border border-slate-700/60 rounded p-3 flex flex-col gap-3">
-                    <div className="grid grid-cols-2 gap-3">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                       <Field label="Investor name">
                         <input className={inputCls} value={n.holderName} onChange={e => updateNote(n.id, { holderName: e.target.value })} placeholder="Bridge Capital" />
                       </Field>
@@ -385,7 +385,7 @@ export default function OnboardingWizard({ onComplete }: Props) {
                         <input className={inputCls} type="number" value={n.principal} onChange={e => updateNote(n.id, { principal: e.target.value })} />
                       </Field>
                     </div>
-                    <div className="grid grid-cols-3 gap-3">
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                       <Field label="Interest rate (%)">
                         <input className={inputCls} type="number" step="0.1" value={n.rate} onChange={e => updateNote(n.id, { rate: e.target.value })} />
                       </Field>

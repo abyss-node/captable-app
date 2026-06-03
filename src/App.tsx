@@ -259,14 +259,14 @@ export default function App() {
           )}
           <span className="text-xs text-slate-500">Cap Table</span>
         </div>
-        <div className="flex items-center gap-5 text-xs text-slate-500">
-          <span>
+        <div className="flex items-center gap-3 md:gap-5 text-xs text-slate-500">
+          <span className="hidden md:inline">
             <span className="text-slate-300">{totalPreShares.toLocaleString()}</span> shares issued
           </span>
-          <span>
+          <span className="hidden md:inline">
             <span className="text-slate-300">${(totalCapital / 1e3).toFixed(0)}K</span> unpriced capital
           </span>
-          <span className="flex items-center gap-1">
+          <span className="hidden md:flex items-center gap-1">
             Auth:{' '}
             {editingField === 'auth' ? (
               <input
@@ -292,7 +292,7 @@ export default function App() {
             )}
             {authError && <span className="text-red-400 text-[10px]">must exceed issued</span>}
           </span>
-          <span className="flex items-center gap-1">
+          <span className="hidden md:flex items-center gap-1">
             409A:{' '}
             {editingField === 'fmv' ? (
               <input
@@ -338,9 +338,9 @@ export default function App() {
         </div>
       </header>
 
-      <div className="flex flex-1">
-        {/* Sidebar nav */}
-        <nav className="w-36 border-r border-slate-800 flex flex-col pt-4 px-2 gap-0.5 shrink-0">
+      <div className="flex flex-1 overflow-hidden">
+        {/* Sidebar nav — desktop only */}
+        <nav className="hidden md:flex w-36 border-r border-slate-800 flex-col pt-4 px-2 gap-0.5 shrink-0">
           {NAV.map(({ id, label }) => (
             <button
               key={id}
@@ -369,7 +369,7 @@ export default function App() {
         </nav>
 
         {/* Main panel */}
-        <main className="flex-1 p-6 overflow-y-auto">
+        <main className="flex-1 p-3 md:p-6 overflow-y-auto pb-20 md:pb-6">
           <div className="max-w-5xl">
             {activePanel === 'ledger' && (
               <LedgerView capTable={capTable} onUpdate={updateCapTable} />
@@ -427,6 +427,28 @@ export default function App() {
           </div>
         </main>
       </div>
+
+      {/* Bottom tab bar — mobile only */}
+      <nav className="md:hidden fixed bottom-0 left-0 right-0 bg-[#0b0d14] border-t border-slate-800 flex items-stretch z-40">
+        {NAV.map(({ id, label }) => {
+          const short: Record<string, string> = {
+            ledger: 'Ledger', simulator: 'Sim', multisim: 'Rounds',
+            waterfall: 'Waterfall', io: 'Export', audit: 'Audit',
+          };
+          return (
+            <button
+              key={id}
+              onClick={() => { setActivePanel(id); saveActivePanel(id); }}
+              className={`flex-1 flex flex-col items-center justify-center py-2 gap-0.5 text-[10px] transition-colors ${
+                activePanel === id ? 'text-white' : 'text-slate-600'
+              }`}
+            >
+              <div className={`w-1 h-1 rounded-full ${activePanel === id ? 'bg-sky-400' : 'bg-transparent'}`} />
+              {short[id] ?? label}
+            </button>
+          );
+        })}
+      </nav>
     </div>
   );
 }

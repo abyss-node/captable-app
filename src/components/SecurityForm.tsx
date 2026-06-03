@@ -138,7 +138,7 @@ export default function SecurityForm({ kind, existing, stakeholders, fmvPerShare
       </Field>
 
       {isNewHolder && (
-        <div className="grid grid-cols-2 gap-3 pl-3 border-l border-slate-700">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pl-3 border-l border-slate-700">
           <Field label="Name">
             <input className={inputCls} value={newHolderName} onChange={e => setNewHolderName(e.target.value)} placeholder="Alice Chen" />
           </Field>
@@ -154,22 +154,22 @@ export default function SecurityForm({ kind, existing, stakeholders, fmvPerShare
       {kind === 'common' && <>
         <Field label="Shares"><input className={inputCls} type="number" value={cShares} onChange={e => setCShares(e.target.value)} /></Field>
         <Field label="Grant date"><input className={inputCls} type="date" value={cGrantDate} onChange={e => setCGrantDate(e.target.value)} /></Field>
-        <div className="grid grid-cols-2 gap-3">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           <Field label="Vesting (months)"><input className={inputCls} type="number" value={cVesting} onChange={e => setCVesting(e.target.value)} /></Field>
           <Field label="Cliff (months)"><input className={inputCls} type="number" value={cCliff} onChange={e => setCCliff(e.target.value)} /></Field>
         </div>
       </>}
 
       {kind === 'preferred' && <>
-        <div className="grid grid-cols-2 gap-3">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           <Field label="Series name"><input className={inputCls} value={pSeries} onChange={e => setPSeries(e.target.value)} /></Field>
           <Field label="Investment ($)"><input className={inputCls} type="number" value={pInvestment} onChange={e => setPInvestment(e.target.value)} /></Field>
         </div>
-        <div className="grid grid-cols-2 gap-3">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           <Field label="Shares"><input className={inputCls} type="number" value={pShares} onChange={e => setPShares(e.target.value)} /></Field>
           <Field label="Issue price / share ($)"><input className={inputCls} type="number" step="0.0001" value={pOIP} onChange={e => setPOIP(e.target.value)} /></Field>
         </div>
-        <div className="grid grid-cols-2 gap-3">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           <Field label="Liquidation multiple">
             <select className={selectCls} value={pMultiple} onChange={e => setPMultiple(e.target.value)}>
               {['1','1.5','2','2.5','3'].map(v => <option key={v} value={v}>{v}×</option>)}
@@ -193,7 +193,7 @@ export default function SecurityForm({ kind, existing, stakeholders, fmvPerShare
       </>}
 
       {kind === 'option' && <>
-        <div className="grid grid-cols-2 gap-3">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           <Field label="Shares"><input className={inputCls} type="number" value={oShares} onChange={e => setOShares(e.target.value)} /></Field>
           <div className="flex flex-col gap-0.5">
             <Field label="Strike price ($)">
@@ -208,7 +208,7 @@ export default function SecurityForm({ kind, existing, stakeholders, fmvPerShare
           </div>
         </div>
         <Field label="Grant date"><input className={inputCls} type="date" value={oGrant} onChange={e => setOGrant(e.target.value)} /></Field>
-        <div className="grid grid-cols-2 gap-3">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           <Field label="Vesting (months)"><input className={inputCls} type="number" value={oVesting} onChange={e => setOVesting(e.target.value)} /></Field>
           <Field label="Cliff (months)"><input className={inputCls} type="number" value={oCliff} onChange={e => setOCliff(e.target.value)} /></Field>
         </div>
@@ -219,7 +219,7 @@ export default function SecurityForm({ kind, existing, stakeholders, fmvPerShare
       </>}
 
       {kind === 'safe' && <>
-        <div className="grid grid-cols-2 gap-3">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           <Field label="Investment ($)"><input className={inputCls} type="number" value={sAmount} onChange={e => setSAmount(e.target.value)} /></Field>
           <Field label="SAFE type">
             <select className={selectCls} value={sType} onChange={e => setSType(e.target.value as SafeType)}>
@@ -239,15 +239,15 @@ export default function SecurityForm({ kind, existing, stakeholders, fmvPerShare
       </>}
 
       {kind === 'convertible_note' && <>
-        <div className="grid grid-cols-2 gap-3">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           <Field label="Principal ($)"><input className={inputCls} type="number" value={nPrincipal} onChange={e => setNPrincipal(e.target.value)} /></Field>
           <Field label="Interest rate (%)"><input className={inputCls} type="number" step="0.1" value={nRate} onChange={e => setNRate(e.target.value)} /></Field>
         </div>
-        <div className="grid grid-cols-2 gap-3">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           <Field label="Issue date"><input className={inputCls} type="date" value={nIssue} onChange={e => setNIssue(e.target.value)} /></Field>
           <Field label="Maturity date"><input className={inputCls} type="date" value={nMaturity} onChange={e => setNMaturity(e.target.value)} /></Field>
         </div>
-        <div className="grid grid-cols-2 gap-3">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           <Field label="Valuation cap ($)"><input className={inputCls} type="number" value={nCap} onChange={e => setNCap(e.target.value)} /></Field>
           <Field label="Discount rate (%)"><input className={inputCls} type="number" min="0" max="100" value={nDiscount} onChange={e => setNDiscount(e.target.value)} /></Field>
         </div>

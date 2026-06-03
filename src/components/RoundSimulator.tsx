@@ -90,7 +90,7 @@ export default function RoundSimulator({ capTable, onResult }: Props) {
       <span className="text-xs text-slate-400 uppercase tracking-widest">Series A Round Simulator</span>
 
       {/* Input grid */}
-      <div className="grid grid-cols-2 gap-3">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
         {field('Pre-Money Valuation', 'preMoneyValuation')}
         {field('New Investment Amount', 'newInvestmentAmount')}
         {field('Target Post-Money Option Pool', 'targetPostMoneyOptionPoolPercent', '', '%')}
@@ -111,7 +111,7 @@ export default function RoundSimulator({ capTable, onResult }: Props) {
       {result && (
         <div className="flex flex-col gap-4 mt-1">
           {/* Key metrics */}
-          <div className="grid grid-cols-3 gap-2">
+          <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
             {[
               ['Price / Share', `$${result.pricePerShare.toFixed(4)}`],
               ['Post-Money Val.', fmtM(result.postMoneyValuation)],
@@ -128,7 +128,7 @@ export default function RoundSimulator({ capTable, onResult }: Props) {
           {result.conversions.length > 0 && (
             <div>
               <p className="text-xs text-slate-400 uppercase tracking-widest mb-2">SAFE / Note Conversions</p>
-              <table className="w-full text-xs">
+              <div className="overflow-x-auto"><table className="w-full text-xs min-w-[480px]">
                 <thead>
                   <tr className="border-b border-slate-700">
                     {['Investor', 'Kind', 'Accrued', 'Conv. Price', 'Shares', 'Basis'].map(h => (
@@ -152,14 +152,14 @@ export default function RoundSimulator({ capTable, onResult }: Props) {
                     </tr>
                   ))}
                 </tbody>
-              </table>
+              </table></div>
             </div>
           )}
 
           {/* Dilution matrix */}
           <div>
             <p className="text-xs text-slate-400 uppercase tracking-widest mb-2">Pre / Post Dilution Matrix</p>
-            <table className="w-full text-xs">
+            <div className="overflow-x-auto"><table className="w-full text-xs min-w-[480px]">
               <thead>
                 <tr className="border-b border-slate-700">
                   <th className="text-left py-1 pr-3 text-slate-500 font-normal">Stakeholder</th>
@@ -190,7 +190,7 @@ export default function RoundSimulator({ capTable, onResult }: Props) {
                   </tr>
                 ))}
               </tbody>
-            </table>
+            </table></div>
             {result.optionPoolExpansionShares > 0 && (
               <p className="text-[10px] text-slate-500 mt-1.5">
                 * Option pool expanded by {fmt(result.optionPoolExpansionShares)} shares (pre-money shuffle)
@@ -202,7 +202,7 @@ export default function RoundSimulator({ capTable, onResult }: Props) {
           {result.antiDilutionAdjustments.length > 0 && (
             <div className="border border-amber-800/40 rounded p-3 bg-amber-900/10">
               <p className="text-xs text-amber-400 uppercase tracking-widest mb-2">Anti-Dilution Triggered (Down Round)</p>
-              <table className="w-full text-xs">
+              <div className="overflow-x-auto"><table className="w-full text-xs min-w-[480px]">
                 <thead>
                   <tr className="border-b border-amber-800/30">
                     {['Series', 'Investor', 'Original CP', 'Adjusted CP', 'Extra shares'].map(h => (
@@ -221,7 +221,7 @@ export default function RoundSimulator({ capTable, onResult }: Props) {
                     </tr>
                   ))}
                 </tbody>
-              </table>
+              </table></div>
               <p className="text-[10px] text-amber-600/60 mt-2">
                 BBWA formula: CP_new = CP_old × (pre-round shares + consideration/CP_old) / (pre-round shares + new shares)
               </p>

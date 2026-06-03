@@ -86,7 +86,7 @@ export default function MultiRoundSimulator({ baseCapTable, history, onHistoryCh
 
       {/* Round input form */}
       <div className="border border-slate-700/60 rounded p-4 flex flex-col gap-3">
-        <div className="grid grid-cols-2 gap-3">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           <div className="flex flex-col gap-1">
             <label className="text-[10px] text-slate-400 uppercase tracking-wider">Round name</label>
             <select
@@ -103,7 +103,7 @@ export default function MultiRoundSimulator({ baseCapTable, history, onHistoryCh
             <input className={inputCls} value={investorName} onChange={e => setInvestorName(e.target.value)} />
           </div>
         </div>
-        <div className="grid grid-cols-3 gap-3">
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
           <div className="flex flex-col gap-1">
             <label className="text-[10px] text-slate-400 uppercase tracking-wider">Pre-money ($)</label>
             <input className={inputCls} type="number" value={preMoney} onChange={e => setPreMoney(e.target.value)} />
@@ -169,7 +169,7 @@ export default function MultiRoundSimulator({ baseCapTable, history, onHistoryCh
 
                 {isOpen && (
                   <div className="px-4 pb-4 border-t border-slate-700/40">
-                    <div className="grid grid-cols-4 gap-2 mt-3 mb-4">
+                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 mt-3 mb-4">
                       {[
                         ['Pre-money', fmtM(record.inputs.preMoneyValuation)],
                         ['Raised', fmtM(record.inputs.newInvestmentAmount)],
@@ -195,7 +195,7 @@ export default function MultiRoundSimulator({ baseCapTable, history, onHistoryCh
                     )}
 
                     <p className="text-[10px] text-slate-400 uppercase tracking-wider mb-1">Dilution</p>
-                    <table className="w-full text-xs">
+                    <div className="overflow-x-auto"><table className="w-full text-xs min-w-[480px]">
                       <thead>
                         <tr className="border-b border-slate-700">
                           {['Stakeholder', 'Pre %', 'Post %', 'Δ'].map(h => (
@@ -215,7 +215,7 @@ export default function MultiRoundSimulator({ baseCapTable, history, onHistoryCh
                           </tr>
                         ))}
                       </tbody>
-                    </table>
+                    </table></div>
                   </div>
                 )}
               </div>
@@ -251,7 +251,7 @@ export default function MultiRoundSimulator({ baseCapTable, history, onHistoryCh
             <p className="text-xs text-slate-300 uppercase tracking-widest mb-3">
               Final ownership after {history.rounds.length} round{history.rounds.length > 1 ? 's' : ''}
             </p>
-            <table className="w-full text-xs">
+            <div className="overflow-x-auto"><table className="w-full text-xs min-w-[480px]">
               <thead>
                 <tr className="border-b border-slate-700">
                   <th className="text-left py-1 pr-4 text-slate-400 font-normal">Stakeholder</th>
@@ -292,7 +292,7 @@ export default function MultiRoundSimulator({ baseCapTable, history, onHistoryCh
                   <td />
                 </tr>
               </tbody>
-            </table>
+            </table></div>
           </div>
         );
       })()}

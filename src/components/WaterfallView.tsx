@@ -161,7 +161,7 @@ export default function WaterfallView({ capTable, roundResult, roundInputs, roun
       )}
 
       {/* Table */}
-      <table className="w-full text-xs">
+      <div className="overflow-x-auto"><table className="w-full text-xs min-w-[480px]">
         <thead>
           <tr className="border-b border-slate-700">
             {['Stakeholder', 'Type', 'Preference', 'Participation', 'Total Payout', '% of Exit', 'MOIC'].map(h => (
@@ -222,7 +222,7 @@ export default function WaterfallView({ capTable, roundResult, roundInputs, roun
             </tr>
           )}
         </tbody>
-      </table>
+      </table></div>
 
       {/* Undistributed note */}
       {exitValuation > totalPayout && rows.length > 0 && (
