@@ -5,9 +5,10 @@ import { serializeCapTable, deserializeCapTable } from '../engine/captable';
 interface Props {
   capTable: CapTable;
   onImport: (ct: CapTable) => void;
+  onReset?: () => void;
 }
 
-export default function ImportExport({ capTable, onImport }: Props) {
+export default function ImportExport({ capTable, onImport, onReset }: Props) {
   const fileRef = useRef<HTMLInputElement>(null);
   const [copied, setCopied] = useState(false);
   const [importError, setImportError] = useState<string | null>(null);
@@ -64,7 +65,7 @@ export default function ImportExport({ capTable, onImport }: Props) {
     <div className="flex flex-col gap-3">
       <span className="text-xs text-slate-400 uppercase tracking-widest">Import / Export</span>
 
-      <div className="grid grid-cols-3 gap-2">
+      <div className="grid grid-cols-2 gap-2">
         <button
           onClick={handleCopy}
           className={`py-2 rounded border text-xs transition-colors ${
@@ -89,6 +90,17 @@ export default function ImportExport({ capTable, onImport }: Props) {
         >
           Upload JSON
         </button>
+
+        {onReset && (
+          <button
+            onClick={() => {
+              if (confirm('Reset to default sandbox? This clears your saved session.')) onReset();
+            }}
+            className="py-2 rounded border border-red-900/60 text-xs text-red-400 hover:border-red-700 hover:text-red-300 transition-colors"
+          >
+            Reset to default
+          </button>
+        )}
       </div>
 
       <input

@@ -17,12 +17,30 @@ const NAV: { id: Panel; label: string }[] = [
   { id: 'io', label: 'Import / Export' },
 ];
 
+const STORAGE_KEY = 'captable-app-state';
+
+function saveCapTable(ct: CapTable): void {
+  try {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(ct));
+  } catch { /* storage full or private mode */ }
+}
+
 function loadInitialCapTable(): CapTable {
+  // 1. Shared URL hash takes priority
   const hash = window.location.hash;
   if (hash.length > 1) {
     const decoded = decodeCapTableFromHash(hash.slice(1));
     if (decoded) return decoded;
   }
+  // 2. Saved session
+  try {
+    const saved = localStorage.getItem(STORAGE_KEY);
+    if (saved) {
+      const ct = JSON.parse(saved) as CapTable;
+      if (Array.isArray(ct.stakeholders) && Array.isArray(ct.securities)) return ct;
+    }
+  } catch { /* ignore corrupt data */ }
+  // 3. Default sandbox
   return INITIAL_CAP_TABLE;
 }
 
@@ -32,6 +50,22 @@ export default function App() {
   const [roundResult, setRoundResult] = useState<RoundResult | null>(null);
   const [roundInputs, setRoundInputs] = useState<SimulatorInputs | null>(null);
   const [shareCopied, setShareCopied] = useState(false);
+  const [savedFlash, setSavedFlash] = useState(false);
+
+  function updateCapTable(ct: CapTable) {
+    setCapTable(ct);
+    saveCapTable(ct);
+    setSavedFlash(true);
+    setTimeout(() => setSavedFlash(false), 1200);
+  }
+
+  function resetToDefault() {
+    localStorage.removeItem(STORAGE_KEY);
+    window.location.hash = '';
+    setCapTable(INITIAL_CAP_TABLE);
+    setRoundResult(null);
+    setRoundInputs(null);
+  }
 
   function handleShare() {
     const encoded = encodeCapTableToHash(capTable);
@@ -81,6 +115,9 @@ export default function App() {
           <span>
             Auth: <span className="text-slate-300">{capTable.authorizedShares.toLocaleString()}</span>
           </span>
+          {savedFlash && (
+            <span className="text-[10px] text-emerald-500 transition-opacity">saved</span>
+          )}
           <button
             onClick={handleShare}
             className={`px-3 py-1.5 rounded border text-xs transition-colors ${
@@ -128,7 +165,7 @@ export default function App() {
         <main className="flex-1 p-6 overflow-y-auto">
           <div className="max-w-5xl">
             {activePanel === 'ledger' && (
-              <LedgerView capTable={capTable} />
+              <LedgerView capTable={capTable} onUpdate={updateCapTable} />
             )}
             {activePanel === 'simulator' && (
               <RoundSimulator
@@ -150,10 +187,11 @@ export default function App() {
               <ImportExport
                 capTable={capTable}
                 onImport={ct => {
-                  setCapTable(ct);
+                  updateCapTable(ct);
                   setRoundResult(null);
                   setRoundInputs(null);
                 }}
+                onReset={resetToDefault}
               />
             )}
           </div>
