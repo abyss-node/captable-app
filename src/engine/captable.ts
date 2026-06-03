@@ -543,47 +543,61 @@ export function computeWaterfall(
     return results;
   }
 
-  // Phase 2: Participation or convert-to-common
-  const totalSharesPhase2 = internalSecurities.reduce((s, sec) => {
-    // Non-participating preferred: can convert to common if it yields more
-    if (sec.kind === 'preferred') {
-      const p = sec as Extract<InternalSec, { kind: 'preferred' }>;
-      if (p.prefType === 'non_participating') {
-        // Will decide after seeing common distribution
-        return s + sec.shares; // tentatively include
-      }
-      return s + sec.shares;
-    }
-    return s + sec.shares;
-  }, 0);
-
-  // Compute pro-rata of remaining for everyone
+  // Phase 1b: Non-participating preferred conversion check.
+  // Each holder independently decides: keep liquidation preference OR convert to
+  // common (whichever yields more). Converters return their preference to the pool
+  // BEFORE phase 2 distribution so the returned capital flows to all participants.
+  const converting = new Set<number>(); // indices of converting preferred holders
   for (let i = 0; i < internalSecurities.length; i++) {
     const sec = internalSecurities[i];
-    const proRata = remaining * (sec.shares / totalSharesPhase2);
+    if (sec.kind !== 'preferred') continue;
+    const p = sec as Extract<InternalSec, { kind: 'preferred' }>;
+    if (p.prefType !== 'non_participating') continue;
 
+    // Pro-rata of the full exit (what they'd receive as common)
+    const asCommon = exitValuation * sec.shares / totalShares;
+    if (asCommon > results[i].preferenceAmount) {
+      remaining += results[i].preferenceAmount; // return preference to pool
+      results[i].preferenceAmount = 0;
+      converting.add(i);
+    }
+  }
+
+  // Phase 2: Distribute `remaining` to common + converting preferred + participating preferred.
+  // Non-converting preferred already took their preference and are excluded here.
+  let phase2Shares = 0;
+  for (let i = 0; i < internalSecurities.length; i++) {
+    const sec = internalSecurities[i];
     if (sec.kind === 'common') {
-      results[i].participationAmount = proRata;
+      phase2Shares += sec.shares;
     } else {
       const p = sec as Extract<InternalSec, { kind: 'preferred' }>;
-      if (p.prefType === 'non_participating') {
-        // Take max of preference (already collected) vs full pro-rata
-        const prefAlreadyPaid = results[i].preferenceAmount;
-        const fullProRata = (exitValuation * sec.shares) / totalSharesPhase2;
-        if (fullProRata > prefAlreadyPaid) {
-          // Give up preference, take pro-rata
-          results[i].preferenceAmount = 0;
-          results[i].participationAmount = fullProRata;
-          // Redistribute the returned preference to others (simplified: absorb into pool)
-        } else {
-          results[i].participationAmount = 0;
-        }
-      } else if (p.prefType === 'participating') {
+      if (p.prefType === 'non_participating' && converting.has(i)) {
+        phase2Shares += sec.shares;
+      } else if (p.prefType === 'participating' || p.prefType === 'participating_capped') {
+        phase2Shares += sec.shares;
+      }
+    }
+  }
+
+  if (phase2Shares > 0) {
+    for (let i = 0; i < internalSecurities.length; i++) {
+      const sec = internalSecurities[i];
+      const proRata = remaining * (sec.shares / phase2Shares);
+
+      if (sec.kind === 'common') {
         results[i].participationAmount = proRata;
-      } else if (p.prefType === 'participating_capped') {
-        const cap = (p.participationCap ?? 2) * p.investment;
-        const alreadyPaid = results[i].preferenceAmount;
-        results[i].participationAmount = Math.max(0, Math.min(proRata, cap - alreadyPaid));
+      } else {
+        const p = sec as Extract<InternalSec, { kind: 'preferred' }>;
+        if (p.prefType === 'non_participating' && converting.has(i)) {
+          results[i].participationAmount = proRata;
+        } else if (p.prefType === 'participating') {
+          results[i].participationAmount = proRata;
+        } else if (p.prefType === 'participating_capped') {
+          const cap = (p.participationCap ?? 2) * p.investment;
+          const alreadyPaid = results[i].preferenceAmount;
+          results[i].participationAmount = Math.max(0, Math.min(proRata, cap - alreadyPaid));
+        }
       }
     }
   }
