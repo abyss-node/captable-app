@@ -1,73 +1,107 @@
-# React + TypeScript + Vite
+# Cap Table
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+A free, local-first cap table modeling tool. No login, no subscription, no server.
 
-Currently, two official plugins are available:
+**[Live demo →](https://captable-app-ten.vercel.app)**
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+---
 
-## React Compiler
+## What it does
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+- **Ledger** — full ownership table with basic and fully-diluted percentages, editable in-browser (add/edit/delete any security)
+- **Round Simulator** — Series A modeling with iterative option pool solver, SAFE/note conversion (cap, discount, or most-favorable), and pre/post dilution matrix
+- **Multi-Round** — chain Seed → Series A → Series B → C; each round auto-converts unpriced instruments and expands the option pool
+- **Waterfall** — liquidation payout calculator with an exit valuation slider ($0–$100M+); handles 1× non-participating, participating, and participating-capped preferred with correct preference return math
+- **Share URL** — the entire cap table state compresses into a URL hash fragment via lz-string; send a link to your lawyer before a board meeting, no account required
+- **Import / Export** — JSON round-trip and CSV export (for lawyers and accountants who live in Excel)
 
-## Expanding the ESLint configuration
+---
 
-If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
+## Why it exists
 
-```js
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
+Carta charges $600+/year. Pulley and Captable.io exist but aren't open source and don't have a real modeling engine. This tool has the math, it's free, and your data never leaves your browser.
 
-      // Remove tseslint.configs.recommended and replace with this
-      tseslint.configs.recommendedTypeChecked,
-      // Alternatively, use this for stricter rules
-      tseslint.configs.strictTypeChecked,
-      // Optionally, add this for stylistic rules
-      tseslint.configs.stylisticTypeChecked,
+The goal is an open-source Carta alternative — starting with the modeling layer and building toward full cap table management.
 
-      // Other configs...
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+---
+
+## Local development
+
+```bash
+npm install
+npm run dev
 ```
 
-You can also install [eslint-plugin-react-x](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-dom) for React-specific lint rules:
+Requires Node 18+. Built with Vite, React 19, TypeScript, and Tailwind CSS 3.
 
-```js
-// eslint.config.js
-import reactX from 'eslint-plugin-react-x'
-import reactDom from 'eslint-plugin-react-dom'
-
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-      // Enable lint rules for React
-      reactX.configs['recommended-typescript'],
-      // Enable lint rules for React DOM
-      reactDom.configs.recommended,
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+```bash
+npm run build   # production build
+npm run lint    # eslint check
 ```
+
+---
+
+## JSON schema
+
+The entire cap table is a single JSON object. Clean enough to use as an open standard for legal tech tooling.
+
+```json
+{
+  "companyName": "Acme Technologies, Inc.",
+  "authorizedShares": 15000000,
+  "stakeholders": [
+    { "id": "founder-alice", "name": "Alice Chen", "type": "founder" }
+  ],
+  "securities": [
+    {
+      "kind": "common",
+      "id": "common-alice",
+      "stakeholderId": "founder-alice",
+      "shares": 4500000,
+      "grantDate": "2022-01-15",
+      "vestingMonths": 48,
+      "cliffMonths": 12
+    },
+    {
+      "kind": "safe",
+      "id": "safe-sofia",
+      "stakeholderId": "angel-sofia",
+      "investmentAmount": 150000,
+      "safeType": "cap_only",
+      "valuationCap": 6000000
+    },
+    {
+      "kind": "convertible_note",
+      "id": "note-bridge",
+      "stakeholderId": "vc-bridge",
+      "principalAmount": 500000,
+      "interestRate": 0.08,
+      "issueDate": "2023-03-01",
+      "maturityDate": "2025-03-01",
+      "valuationCap": 10000000,
+      "discountRate": 0.20,
+      "compoundingFrequency": "annual"
+    }
+  ]
+}
+```
+
+Security `kind` values: `common` · `preferred` · `option` · `safe` · `convertible_note`
+
+SAFE `safeType` values: `cap_only` · `discount_only` · `most_favorable` · `post_money_safe`
+
+Preferred `preferenceType` values: `non_participating` · `participating` · `participating_capped`
+
+---
+
+## Stack
+
+- [Vite](https://vitejs.dev) + [React](https://react.dev) + [TypeScript](https://www.typescriptlang.org)
+- [Tailwind CSS](https://tailwindcss.com)
+- [lz-string](https://github.com/pieroxy/lz-string) for URL compression
+
+---
+
+## License
+
+MIT

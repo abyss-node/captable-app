@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import type { CapTable, RoundResult } from './engine/captable';
 import { encodeCapTableToHash, decodeCapTableFromHash } from './engine/captable';
 import { INITIAL_CAP_TABLE } from './data/mockData';
@@ -55,6 +55,43 @@ export default function App() {
   const [roundHistory, setRoundHistory] = useState<RoundHistory>({ rounds: [] });
   const [shareCopied, setShareCopied] = useState(false);
   const [savedFlash, setSavedFlash] = useState(false);
+  const [editingField, setEditingField] = useState<'name' | 'auth' | null>(null);
+  const [draftName, setDraftName] = useState('');
+  const [draftAuth, setDraftAuth] = useState('');
+  const [authError, setAuthError] = useState(false);
+  const nameInputRef = useRef<HTMLInputElement>(null);
+  const authInputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    document.title = `${capTable.companyName} · Cap Table`;
+  }, [capTable.companyName]);
+
+  function startEditName() {
+    setDraftName(capTable.companyName);
+    setEditingField('name');
+    setTimeout(() => nameInputRef.current?.select(), 0);
+  }
+
+  function commitName() {
+    const trimmed = draftName.trim();
+    if (trimmed) updateCapTable({ ...capTable, companyName: trimmed });
+    setEditingField(null);
+  }
+
+  function startEditAuth() {
+    setDraftAuth(String(capTable.authorizedShares));
+    setAuthError(false);
+    setEditingField('auth');
+    setTimeout(() => authInputRef.current?.select(), 0);
+  }
+
+  function commitAuth() {
+    const val = Number(draftAuth);
+    if (val <= totalPreShares) { setAuthError(true); return; }
+    updateCapTable({ ...capTable, authorizedShares: val });
+    setEditingField(null);
+    setAuthError(false);
+  }
 
   function updateCapTable(ct: CapTable) {
     setCapTable(ct);
@@ -103,10 +140,28 @@ export default function App() {
       {/* Top bar */}
       <header className="border-b border-slate-800 px-6 py-3 flex items-center justify-between">
         <div className="flex items-center gap-3">
-          <div className="w-2 h-2 rounded-full bg-sky-400" />
-          <span className="text-sm font-semibold tracking-tight text-white">
-            {capTable.companyName}
-          </span>
+          <div className="w-2 h-2 rounded-full bg-sky-400 shrink-0" />
+          {editingField === 'name' ? (
+            <input
+              ref={nameInputRef}
+              value={draftName}
+              onChange={e => setDraftName(e.target.value)}
+              onBlur={commitName}
+              onKeyDown={e => {
+                if (e.key === 'Enter') commitName();
+                if (e.key === 'Escape') setEditingField(null);
+              }}
+              className="text-sm font-semibold tracking-tight text-white bg-transparent border-b border-slate-500 outline-none w-56"
+            />
+          ) : (
+            <button
+              onClick={startEditName}
+              className="text-sm font-semibold tracking-tight text-white hover:text-slate-300 transition-colors text-left"
+              title="Click to edit company name"
+            >
+              {capTable.companyName}
+            </button>
+          )}
           <span className="text-xs text-slate-500">Cap Table</span>
         </div>
         <div className="flex items-center gap-5 text-xs text-slate-500">
@@ -116,8 +171,31 @@ export default function App() {
           <span>
             <span className="text-slate-300">${(totalCapital / 1e3).toFixed(0)}K</span> unpriced capital
           </span>
-          <span>
-            Auth: <span className="text-slate-300">{capTable.authorizedShares.toLocaleString()}</span>
+          <span className="flex items-center gap-1">
+            Auth:{' '}
+            {editingField === 'auth' ? (
+              <input
+                ref={authInputRef}
+                type="number"
+                value={draftAuth}
+                onChange={e => { setDraftAuth(e.target.value); setAuthError(false); }}
+                onBlur={commitAuth}
+                onKeyDown={e => {
+                  if (e.key === 'Enter') commitAuth();
+                  if (e.key === 'Escape') setEditingField(null);
+                }}
+                className={`w-28 bg-transparent border-b outline-none tabular-nums text-slate-300 ${authError ? 'border-red-500 text-red-400' : 'border-slate-500'}`}
+              />
+            ) : (
+              <button
+                onClick={startEditAuth}
+                className="text-slate-300 hover:text-white transition-colors tabular-nums"
+                title="Click to edit authorized shares"
+              >
+                {capTable.authorizedShares.toLocaleString()}
+              </button>
+            )}
+            {authError && <span className="text-red-400 text-[10px]">must exceed issued</span>}
           </span>
           {savedFlash && (
             <span className="text-[10px] text-emerald-500 transition-opacity">saved</span>

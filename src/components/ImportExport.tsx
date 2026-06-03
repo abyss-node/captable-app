@@ -1,6 +1,6 @@
 import React, { useRef, useState } from 'react';
 import type { CapTable } from '../engine/captable';
-import { serializeCapTable, deserializeCapTable } from '../engine/captable';
+import { serializeCapTable, deserializeCapTable, computeOwnership } from '../engine/captable';
 
 interface Props {
   capTable: CapTable;
@@ -39,6 +39,61 @@ export default function ImportExport({ capTable, onImport, onReset }: Props) {
     const a = document.createElement('a');
     a.href = url;
     a.download = `${capTable.companyName.replace(/\s+/g, '_')}_captable.json`;
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
+  const handleDownloadCSV = () => {
+    const rows = computeOwnership(capTable);
+    const esc = (s: string) => `"${s.replace(/"/g, '""')}"`;
+    const lines: string[] = [];
+
+    lines.push('SHARE LEDGER');
+    lines.push(`"${capTable.companyName}"`);
+    lines.push('');
+    lines.push('Stakeholder,Type,Security,Shares,Basic %,Diluted %,Notes');
+    for (const r of rows.sort((a, b) => b.shares - a.shares)) {
+      lines.push([
+        esc(r.stakeholderName),
+        esc(r.stakeholderType),
+        esc(r.securityKind),
+        r.shares,
+        (r.ownership * 100).toFixed(4) + '%',
+        (r.dilutedOwnership * 100).toFixed(4) + '%',
+        esc(r.notes),
+      ].join(','));
+    }
+
+    const safes = capTable.securities.filter(s => s.kind === 'safe');
+    const notes = capTable.securities.filter(s => s.kind === 'convertible_note');
+    if (safes.length > 0 || notes.length > 0) {
+      lines.push('');
+      lines.push('UNPRICED INSTRUMENTS');
+      lines.push('Stakeholder,Kind,Amount ($),Terms');
+      for (const s of safes) {
+        if (s.kind !== 'safe') continue;
+        const holder = capTable.stakeholders.find(h => h.id === s.stakeholderId);
+        const terms = s.safeType === 'cap_only'
+          ? `Cap $${(s.valuationCap! / 1e6).toFixed(1)}M`
+          : s.safeType === 'discount_only'
+          ? `${(s.discountRate! * 100).toFixed(0)}% discount`
+          : `Cap $${(s.valuationCap! / 1e6).toFixed(1)}M · ${(s.discountRate! * 100).toFixed(0)}% discount`;
+        lines.push([esc(holder?.name ?? ''), 'SAFE', s.investmentAmount, esc(terms)].join(','));
+      }
+      for (const n of notes) {
+        if (n.kind !== 'convertible_note') continue;
+        const holder = capTable.stakeholders.find(h => h.id === n.stakeholderId);
+        const terms = `${(n.interestRate * 100).toFixed(0)}% ${n.compoundingFrequency}${n.valuationCap ? ` · Cap $${(n.valuationCap / 1e6).toFixed(1)}M` : ''}${n.discountRate ? ` · ${(n.discountRate * 100).toFixed(0)}% discount` : ''}`;
+        lines.push([esc(holder?.name ?? ''), 'Conv. Note', n.principalAmount, esc(terms)].join(','));
+      }
+    }
+
+    const csv = lines.join('\n');
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `${capTable.companyName.replace(/\s+/g, '_')}_captable.csv`;
     a.click();
     URL.revokeObjectURL(url);
   };
@@ -82,6 +137,13 @@ export default function ImportExport({ capTable, onImport, onReset }: Props) {
           className="py-2 rounded border border-slate-700 text-xs text-slate-300 hover:border-slate-500 hover:text-white transition-colors"
         >
           Download .json
+        </button>
+
+        <button
+          onClick={handleDownloadCSV}
+          className="py-2 rounded border border-slate-700 text-xs text-slate-300 hover:border-slate-500 hover:text-white transition-colors"
+        >
+          Download .csv
         </button>
 
         <button
