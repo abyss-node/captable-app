@@ -7,12 +7,14 @@ import RoundSimulator from './components/RoundSimulator';
 import type { SimulatorInputs } from './components/RoundSimulator';
 import WaterfallView from './components/WaterfallView';
 import ImportExport from './components/ImportExport';
+import MultiRoundSimulator from './components/MultiRoundSimulator';
 
-type Panel = 'ledger' | 'simulator' | 'waterfall' | 'io';
+type Panel = 'ledger' | 'simulator' | 'multisim' | 'waterfall' | 'io';
 
 const NAV: { id: Panel; label: string }[] = [
   { id: 'ledger', label: 'Ledger' },
   { id: 'simulator', label: 'Round Sim' },
+  { id: 'multisim', label: 'Multi-Round' },
   { id: 'waterfall', label: 'Waterfall' },
   { id: 'io', label: 'Import / Export' },
 ];
@@ -175,6 +177,9 @@ export default function App() {
                   setRoundInputs(inputs);
                 }}
               />
+            )}
+            {activePanel === 'multisim' && (
+              <MultiRoundSimulator baseCapTable={capTable} />
             )}
             {activePanel === 'waterfall' && (
               <WaterfallView
