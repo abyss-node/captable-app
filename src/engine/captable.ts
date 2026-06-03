@@ -307,7 +307,7 @@ export function simulateRound(capTable: CapTable, inputs: RoundInputs): RoundRes
       const discountPrice = sec.discountRate ? pricePerShare * (1 - sec.discountRate) : pricePerShare;
       const conversionPrice = Math.min(capPrice, discountPrice);
 
-      let basis = '';
+      let basis: string;
       if (conversionPrice === capPrice && sec.valuationCap) {
         basis = `Cap: $${sec.valuationCap.toLocaleString()}`;
       } else if (sec.discountRate) {

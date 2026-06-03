@@ -51,7 +51,7 @@ export default function ImportExport({ capTable, onImport }: Props) {
       try {
         const ct = deserializeCapTable(ev.target?.result as string);
         onImport(ct);
-      } catch (err) {
+      } catch {
         setImportError('Invalid JSON payload. Ensure it matches the CapTable schema.');
       }
     };
