@@ -1,6 +1,7 @@
 import React, { useRef, useState } from 'react';
 import type { CapTable } from '../engine/captable';
 import { serializeCapTable, deserializeCapTable, computeOwnership } from '../engine/captable';
+import { generateAndPrintPDF } from '../engine/pdfExport';
 
 interface Props {
   capTable: CapTable;
@@ -145,6 +146,13 @@ export default function ImportExport({ capTable, onImport, onReset, onNewCompany
           className="py-2 rounded border border-slate-700 text-xs text-slate-300 hover:border-slate-500 hover:text-white transition-colors"
         >
           Download .csv
+        </button>
+
+        <button
+          onClick={() => generateAndPrintPDF(capTable)}
+          className="py-2 rounded border border-slate-700 text-xs text-slate-300 hover:border-slate-500 hover:text-white transition-colors"
+        >
+          Print / Save PDF
         </button>
 
         <button

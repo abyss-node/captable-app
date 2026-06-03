@@ -40,6 +40,22 @@ export default function WaterfallView({ capTable, roundResult, roundInputs, roun
 
   const hasMultiRound = roundHistory.rounds.length > 0;
 
+  // Current valuation marker: last round's post-money, or single sim, or 409A × shares
+  const currentValuation = useMemo(() => {
+    if (hasMultiRound && roundHistory.rounds.length > 0) {
+      return roundHistory.rounds[roundHistory.rounds.length - 1].result.postMoneyValuation;
+    }
+    if (roundResult) return roundResult.postMoneyValuation;
+    if (capTable.fmvPerShare) {
+      const totalShares = capTable.securities.reduce((s, sec) => {
+        if (sec.kind === 'common' || sec.kind === 'option' || sec.kind === 'preferred') return s + sec.shares;
+        return s;
+      }, 0);
+      return capTable.fmvPerShare * totalShares;
+    }
+    return null;
+  }, [capTable, roundResult, roundHistory, hasMultiRound]);
+
   // When multi-round history exists, apply all rounds to get the final cap table
   // and pass it directly — no separate roundResult needed since all preferred
   // series are already represented as securities in the final table.
@@ -85,15 +101,31 @@ export default function WaterfallView({ capTable, roundResult, roundInputs, roun
           <span>Exit Valuation</span>
           <span className="text-white font-semibold tabular-nums">{fmtM(exitValuation)}</span>
         </div>
-        <input
-          type="range"
-          min={0}
-          max={MAX_EXIT}
-          step={250_000}
-          value={exitValuation}
-          onChange={e => setExitValuation(Number(e.target.value))}
-          className="w-full accent-slate-400 cursor-pointer"
-        />
+        <div className="relative">
+          <input
+            type="range"
+            min={0}
+            max={MAX_EXIT}
+            step={250_000}
+            value={exitValuation}
+            onChange={e => setExitValuation(Number(e.target.value))}
+            className="w-full accent-slate-400 cursor-pointer"
+          />
+          {currentValuation !== null && currentValuation > 0 && currentValuation <= MAX_EXIT && (
+            <div
+              className="absolute top-0 bottom-0 flex flex-col items-center pointer-events-none"
+              style={{ left: `calc(${(currentValuation / MAX_EXIT) * 100}% - 1px)` }}
+            >
+              <div className="w-0.5 h-full bg-amber-400/70" />
+              <span
+                className="absolute -top-5 text-[9px] text-amber-400/80 whitespace-nowrap"
+                style={{ transform: 'translateX(-50%)' }}
+              >
+                {fmtM(currentValuation)} today
+              </span>
+            </div>
+          )}
+        </div>
         <div className="flex justify-between text-[10px] text-slate-600">
           <span>$0</span>
           <span>$25M</span>
