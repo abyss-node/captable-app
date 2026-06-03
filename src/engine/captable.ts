@@ -196,6 +196,16 @@ export interface DilutionRow {
   dilutionPercent: number;
 }
 
+export interface AntiDilutionAdjustment {
+  securityId: string;
+  stakeholderName: string;
+  seriesName: string;
+  originalConversionPrice: number;
+  adjustedConversionPrice: number;
+  originalShares: number;
+  adjustedShares: number; // effective common shares on conversion
+}
+
 export interface RoundResult {
   pricePerShare: number;
   optionPoolExpansionShares: number;
@@ -206,6 +216,7 @@ export interface RoundResult {
   dilutionMatrix: DilutionRow[];
   newInvestorShares: number;
   newInvestorOwnership: number;
+  antiDilutionAdjustments: AntiDilutionAdjustment[];
 }
 
 // ─── Main Round Simulator ─────────────────────────────────────────────────────
@@ -245,9 +256,22 @@ export function simulateRound(capTable: CapTable, inputs: RoundInputs): RoundRes
     const pricePerShare = inputs.preMoneyValuation / preMoneyShaesWithExpansion;
     const newInvestorShares = inputs.newInvestmentAmount / pricePerShare;
 
-    // Approximate conversion shares (we'll compute properly below, use 0 for pool solve)
-    // For accuracy, include SAFE/note conversions here
-    const totalPostApprox = preMoneyShaesWithExpansion + newInvestorShares;
+    // Include estimated SAFE/note conversion shares so the pool % is
+    // computed against the true post-money fully-diluted count.
+    let estimatedConversionShares = 0;
+    for (const sec of securities) {
+      if (sec.kind === 'safe') {
+        const capPx = sec.valuationCap ? sec.valuationCap / preMoneyShaesWithExpansion : Infinity;
+        const discPx = sec.discountRate ? pricePerShare * (1 - sec.discountRate) : Infinity;
+        estimatedConversionShares += sec.investmentAmount / Math.min(capPx, discPx, pricePerShare);
+      } else if (sec.kind === 'convertible_note') {
+        const capPx = sec.valuationCap ? sec.valuationCap / preMoneyShaesWithExpansion : Infinity;
+        const discPx = sec.discountRate ? pricePerShare * (1 - sec.discountRate) : pricePerShare;
+        estimatedConversionShares += sec.principalAmount / Math.min(capPx, discPx);
+      }
+    }
+
+    const totalPostApprox = preMoneyShaesWithExpansion + newInvestorShares + estimatedConversionShares;
     const targetPoolShares = targetPool * totalPostApprox;
     const newExpansion = Math.max(0, targetPoolShares - existingPoolShares);
 
@@ -398,6 +422,39 @@ export function simulateRound(capTable: CapTable, inputs: RoundInputs): RoundRes
     newInvestorShares,
   ));
 
+  // 7. Broad-based weighted average anti-dilution for down rounds
+  // Triggered when new price < a protected preferred series' original issue price.
+  // BBWA formula: CP_new = CP_old × (A + B) / (A + C)
+  //   A = fully diluted shares before new issuance
+  //   B = aggregate consideration / CP_old  (shares issuable at old price)
+  //   C = new shares actually issued
+  const antiDilutionAdjustments: AntiDilutionAdjustment[] = [];
+
+  for (const sec of securities) {
+    if (sec.kind !== 'preferred') continue;
+    if (!sec.isAntiDilutionProtected) continue;
+    if (sec.originalIssuePricePerShare <= pricePerShare) continue; // not a down round for this series
+
+    const holder = stakeholderMap.get(sec.stakeholderId);
+    if (!holder) continue;
+
+    const A = preRoundShares; // fully diluted before new issuance
+    const B = inputs.newInvestmentAmount / sec.originalIssuePricePerShare;
+    const C = newInvestorShares;
+    const adjustedConversionPrice = sec.originalIssuePricePerShare * (A + B) / (A + C);
+    const adjustedShares = Math.floor(sec.investmentAmount / adjustedConversionPrice);
+
+    antiDilutionAdjustments.push({
+      securityId: sec.id,
+      stakeholderName: holder.name,
+      seriesName: sec.seriesName,
+      originalConversionPrice: sec.originalIssuePricePerShare,
+      adjustedConversionPrice,
+      originalShares: sec.shares,
+      adjustedShares,
+    });
+  }
+
   return {
     pricePerShare,
     optionPoolExpansionShares: expansionShares,
@@ -408,6 +465,7 @@ export function simulateRound(capTable: CapTable, inputs: RoundInputs): RoundRes
     dilutionMatrix,
     newInvestorShares,
     newInvestorOwnership: newInvestorShares / postMoneyTotalShares,
+    antiDilutionAdjustments,
   };
 }
 

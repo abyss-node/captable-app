@@ -197,6 +197,36 @@ export default function RoundSimulator({ capTable, onResult }: Props) {
               </p>
             )}
           </div>
+
+          {/* Anti-dilution adjustments */}
+          {result.antiDilutionAdjustments.length > 0 && (
+            <div className="border border-amber-800/40 rounded p-3 bg-amber-900/10">
+              <p className="text-xs text-amber-400 uppercase tracking-widest mb-2">Anti-Dilution Triggered (Down Round)</p>
+              <table className="w-full text-xs">
+                <thead>
+                  <tr className="border-b border-amber-800/30">
+                    {['Series', 'Investor', 'Original CP', 'Adjusted CP', 'Extra shares'].map(h => (
+                      <th key={h} className="text-left py-1 pr-3 text-amber-600/70 font-normal text-[10px]">{h}</th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody>
+                  {result.antiDilutionAdjustments.map(adj => (
+                    <tr key={adj.securityId} className="border-b border-amber-800/20">
+                      <td className="py-1 pr-3 text-amber-300">{adj.seriesName}</td>
+                      <td className="py-1 pr-3 text-slate-300">{adj.stakeholderName}</td>
+                      <td className="py-1 pr-3 tabular-nums text-slate-400">${adj.originalConversionPrice.toFixed(4)}</td>
+                      <td className="py-1 pr-3 tabular-nums text-amber-400 font-medium">${adj.adjustedConversionPrice.toFixed(4)}</td>
+                      <td className="py-1 tabular-nums text-emerald-400">+{fmt(adj.adjustedShares - adj.originalShares)}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+              <p className="text-[10px] text-amber-600/60 mt-2">
+                BBWA formula: CP_new = CP_old × (pre-round shares + consideration/CP_old) / (pre-round shares + new shares)
+              </p>
+            </div>
+          )}
         </div>
       )}
     </div>

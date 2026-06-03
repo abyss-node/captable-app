@@ -28,12 +28,39 @@ const NAV: { id: Panel; label: string }[] = [
   { id: 'audit', label: 'Audit Log' },
 ];
 
-const STORAGE_KEY = 'captable-app-state';
+const STORAGE_KEY        = 'captable-app-state';
+const ROUND_HISTORY_KEY  = 'captable-app-rounds';
+const ACTIVE_PANEL_KEY   = 'captable-app-panel';
 
 function saveCapTable(ct: CapTable): void {
+  try { localStorage.setItem(STORAGE_KEY, JSON.stringify(ct)); } catch { /* full */ }
+}
+
+function saveRoundHistory(h: RoundHistory): void {
+  try { localStorage.setItem(ROUND_HISTORY_KEY, JSON.stringify(h)); } catch { /* full */ }
+}
+
+function loadRoundHistory(): RoundHistory {
   try {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(ct));
-  } catch { /* storage full or private mode */ }
+    const raw = localStorage.getItem(ROUND_HISTORY_KEY);
+    if (!raw) return { rounds: [] };
+    const parsed = JSON.parse(raw) as RoundHistory;
+    if (Array.isArray(parsed.rounds)) return parsed;
+  } catch { /* corrupt */ }
+  return { rounds: [] };
+}
+
+function saveActivePanel(panel: string): void {
+  try { localStorage.setItem(ACTIVE_PANEL_KEY, panel); } catch { /* full */ }
+}
+
+function loadActivePanel(): Panel {
+  try {
+    const p = localStorage.getItem(ACTIVE_PANEL_KEY) as Panel | null;
+    const valid: Panel[] = ['ledger','simulator','multisim','waterfall','io','audit'];
+    if (p && valid.includes(p)) return p;
+  } catch { /* ignore */ }
+  return 'ledger';
 }
 
 function loadInitialCapTable(): CapTable {
@@ -57,10 +84,10 @@ function loadInitialCapTable(): CapTable {
 
 export default function App() {
   const [capTable, setCapTable] = useState<CapTable>(loadInitialCapTable);
-  const [activePanel, setActivePanel] = useState<Panel>('ledger');
+  const [activePanel, setActivePanel] = useState<Panel>(loadActivePanel);
   const [roundResult, setRoundResult] = useState<RoundResult | null>(null);
   const [roundInputs, setRoundInputs] = useState<SimulatorInputs | null>(null);
-  const [roundHistory, setRoundHistory] = useState<RoundHistory>({ rounds: [] });
+  const [roundHistory, setRoundHistory] = useState<RoundHistory>(loadRoundHistory);
   const [auditLog, setAuditLog] = useState<AuditLog>(loadAuditLog);
   const [showWizard, setShowWizard] = useState(() => {
     // Show wizard only on a genuine first visit: no saved session, no shared URL
@@ -137,16 +164,19 @@ export default function App() {
     const entry = makeResetEntry();
     const newLog = appendToLog(auditLog, [entry]);
     localStorage.removeItem(STORAGE_KEY);
+    localStorage.removeItem(ROUND_HISTORY_KEY);
     window.location.hash = '';
     setCapTable(INITIAL_CAP_TABLE);
     setAuditLog(newLog);
     saveAuditLog(newLog);
     setRoundResult(null);
     setRoundInputs(null);
+    setRoundHistory({ rounds: [] });
   }
 
   function startNewCompany() {
     localStorage.removeItem(STORAGE_KEY);
+    localStorage.removeItem(ROUND_HISTORY_KEY);
     clearAuditLog();
     window.location.hash = '';
     setCapTable(INITIAL_CAP_TABLE);
@@ -314,7 +344,7 @@ export default function App() {
           {NAV.map(({ id, label }) => (
             <button
               key={id}
-              onClick={() => setActivePanel(id)}
+              onClick={() => { setActivePanel(id); saveActivePanel(id); }}
               className={`text-left px-3 py-2.5 rounded text-xs transition-colors ${
                 activePanel === id
                   ? 'bg-slate-700/70 text-white'
@@ -357,7 +387,7 @@ export default function App() {
               <MultiRoundSimulator
                 baseCapTable={capTable}
                 history={roundHistory}
-                onHistoryChange={setRoundHistory}
+                onHistoryChange={h => { setRoundHistory(h); saveRoundHistory(h); }}
               />
             )}
             {activePanel === 'waterfall' && (
