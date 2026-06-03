@@ -3,14 +3,20 @@ import type { CapTable, RoundResult } from './engine/captable';
 import { encodeCapTableToHash, decodeCapTableFromHash } from './engine/captable';
 import { INITIAL_CAP_TABLE } from './data/mockData';
 import type { RoundHistory } from './engine/multiRound';
+import type { AuditLog } from './engine/audit';
+import {
+  diffCapTables, makeImportEntry, makeResetEntry,
+  loadAuditLog, saveAuditLog, appendToLog, clearAuditLog,
+} from './engine/audit';
 import LedgerView from './components/LedgerView';
 import RoundSimulator from './components/RoundSimulator';
 import type { SimulatorInputs } from './components/RoundSimulator';
 import WaterfallView from './components/WaterfallView';
 import ImportExport from './components/ImportExport';
 import MultiRoundSimulator from './components/MultiRoundSimulator';
+import AuditLogView from './components/AuditLogView';
 
-type Panel = 'ledger' | 'simulator' | 'multisim' | 'waterfall' | 'io';
+type Panel = 'ledger' | 'simulator' | 'multisim' | 'waterfall' | 'io' | 'audit';
 
 const NAV: { id: Panel; label: string }[] = [
   { id: 'ledger', label: 'Ledger' },
@@ -18,6 +24,7 @@ const NAV: { id: Panel; label: string }[] = [
   { id: 'multisim', label: 'Multi-Round' },
   { id: 'waterfall', label: 'Waterfall' },
   { id: 'io', label: 'Import / Export' },
+  { id: 'audit', label: 'Audit Log' },
 ];
 
 const STORAGE_KEY = 'captable-app-state';
@@ -53,6 +60,7 @@ export default function App() {
   const [roundResult, setRoundResult] = useState<RoundResult | null>(null);
   const [roundInputs, setRoundInputs] = useState<SimulatorInputs | null>(null);
   const [roundHistory, setRoundHistory] = useState<RoundHistory>({ rounds: [] });
+  const [auditLog, setAuditLog] = useState<AuditLog>(loadAuditLog);
   const [shareCopied, setShareCopied] = useState(false);
   const [savedFlash, setSavedFlash] = useState(false);
   const [editingField, setEditingField] = useState<'name' | 'auth' | null>(null);
@@ -94,16 +102,24 @@ export default function App() {
   }
 
   function updateCapTable(ct: CapTable) {
+    const entries = diffCapTables(capTable, ct);
+    const newLog = appendToLog(auditLog, entries);
     setCapTable(ct);
     saveCapTable(ct);
+    setAuditLog(newLog);
+    saveAuditLog(newLog);
     setSavedFlash(true);
     setTimeout(() => setSavedFlash(false), 1200);
   }
 
   function resetToDefault() {
+    const entry = makeResetEntry();
+    const newLog = appendToLog(auditLog, [entry]);
     localStorage.removeItem(STORAGE_KEY);
     window.location.hash = '';
     setCapTable(INITIAL_CAP_TABLE);
+    setAuditLog(newLog);
+    saveAuditLog(newLog);
     setRoundResult(null);
     setRoundInputs(null);
   }
@@ -277,11 +293,25 @@ export default function App() {
               <ImportExport
                 capTable={capTable}
                 onImport={ct => {
-                  updateCapTable(ct);
+                  const entry = makeImportEntry(ct.companyName);
+                  const newLog = appendToLog(auditLog, [entry]);
+                  setCapTable(ct);
+                  saveCapTable(ct);
+                  setAuditLog(newLog);
+                  saveAuditLog(newLog);
                   setRoundResult(null);
                   setRoundInputs(null);
                 }}
                 onReset={resetToDefault}
+              />
+            )}
+            {activePanel === 'audit' && (
+              <AuditLogView
+                log={auditLog}
+                onClear={() => {
+                  clearAuditLog();
+                  setAuditLog([]);
+                }}
               />
             )}
           </div>
