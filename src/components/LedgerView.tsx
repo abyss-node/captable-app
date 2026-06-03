@@ -3,6 +3,7 @@ import type { CapTable, Security, Stakeholder } from '../engine/captable';
 import { computeOwnership } from '../engine/captable';
 import EditModal from './EditModal';
 import SecurityForm from './SecurityForm';
+import VestingSchedules from './VestingSchedules';
 
 interface Props {
   capTable: CapTable;
@@ -241,6 +242,8 @@ export default function LedgerView({ capTable, onUpdate }: Props) {
           </table>
         </div>
       )}
+      <VestingSchedules capTable={capTable} />
+
       {/* Edit / Add modal */}
       {modal && (
         <EditModal
