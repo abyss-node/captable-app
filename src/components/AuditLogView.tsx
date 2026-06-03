@@ -1,3 +1,4 @@
+import { useMemo } from 'react';
 import type { AuditLog, AuditAction } from '../engine/audit';
 
 interface Props {
@@ -46,7 +47,7 @@ function absoluteTime(isoString: string): string {
 }
 
 export default function AuditLogView({ log, onClear }: Props) {
-  const reversed = [...log].reverse();
+  const reversed = useMemo(() => [...log].reverse(), [log]);
 
   return (
     <div className="flex flex-col gap-3">

@@ -19,26 +19,26 @@ import OnboardingWizard from './components/OnboardingWizard';
 
 type Panel = 'ledger' | 'simulator' | 'multisim' | 'waterfall' | 'io' | 'audit';
 
-const NAV: { id: Panel; label: string }[] = [
-  { id: 'ledger', label: 'Ledger' },
-  { id: 'simulator', label: 'Round Sim' },
-  { id: 'multisim', label: 'Multi-Round' },
-  { id: 'waterfall', label: 'Waterfall' },
-  { id: 'io', label: 'Import / Export' },
-  { id: 'audit', label: 'Audit Log' },
+const NAV: { id: Panel; label: string; short: string }[] = [
+  { id: 'ledger',    label: 'Ledger',          short: 'Ledger'   },
+  { id: 'simulator', label: 'Round Sim',        short: 'Sim'      },
+  { id: 'multisim',  label: 'Multi-Round',      short: 'Rounds'   },
+  { id: 'waterfall', label: 'Waterfall',        short: 'Waterfall'},
+  { id: 'io',        label: 'Import / Export',  short: 'Export'   },
+  { id: 'audit',     label: 'Audit Log',        short: 'Audit'    },
 ];
 
 const STORAGE_KEY        = 'captable-app-state';
 const ROUND_HISTORY_KEY  = 'captable-app-rounds';
 const ACTIVE_PANEL_KEY   = 'captable-app-panel';
 
-function saveCapTable(ct: CapTable): void {
-  try { localStorage.setItem(STORAGE_KEY, JSON.stringify(ct)); } catch { /* full */ }
+function saveToLS(key: string, value: unknown): void {
+  try { localStorage.setItem(key, JSON.stringify(value)); } catch { /* storage full */ }
 }
 
-function saveRoundHistory(h: RoundHistory): void {
-  try { localStorage.setItem(ROUND_HISTORY_KEY, JSON.stringify(h)); } catch { /* full */ }
-}
+function saveCapTable(ct: CapTable): void { saveToLS(STORAGE_KEY, ct); }
+function saveRoundHistory(h: RoundHistory): void { saveToLS(ROUND_HISTORY_KEY, h); }
+function saveActivePanel(p: string): void { saveToLS(ACTIVE_PANEL_KEY, p); }
 
 function loadRoundHistory(): RoundHistory {
   try {
@@ -48,10 +48,6 @@ function loadRoundHistory(): RoundHistory {
     if (Array.isArray(parsed.rounds)) return parsed;
   } catch { /* corrupt */ }
   return { rounds: [] };
-}
-
-function saveActivePanel(panel: string): void {
-  try { localStorage.setItem(ACTIVE_PANEL_KEY, panel); } catch { /* full */ }
 }
 
 function loadActivePanel(): Panel {
@@ -149,8 +145,10 @@ export default function App() {
     setEditingField(null);
   }
 
-  function updateCapTable(ct: CapTable) {
-    const entries = diffCapTables(capTable, ct);
+  // Single write path for all cap table mutations.
+  // Pass overrideEntries to skip diffing (imports, wizard) and use a specific entry instead.
+  function updateCapTable(ct: CapTable, overrideEntries?: import('./engine/audit').AuditEntry[]) {
+    const entries = overrideEntries ?? diffCapTables(capTable, ct);
     const newLog = appendToLog(auditLog, entries);
     setCapTable(ct);
     saveCapTable(ct);
@@ -160,30 +158,28 @@ export default function App() {
     setTimeout(() => setSavedFlash(false), 1200);
   }
 
-  function resetToDefault() {
-    const entry = makeResetEntry();
-    const newLog = appendToLog(auditLog, [entry]);
+  function clearSessionState() {
     localStorage.removeItem(STORAGE_KEY);
     localStorage.removeItem(ROUND_HISTORY_KEY);
     window.location.hash = '';
-    setCapTable(INITIAL_CAP_TABLE);
-    setAuditLog(newLog);
-    saveAuditLog(newLog);
     setRoundResult(null);
     setRoundInputs(null);
     setRoundHistory({ rounds: [] });
   }
 
+  function resetToDefault() {
+    const newLog = appendToLog(auditLog, [makeResetEntry()]);
+    clearSessionState();
+    setCapTable(INITIAL_CAP_TABLE);
+    setAuditLog(newLog);
+    saveAuditLog(newLog);
+  }
+
   function startNewCompany() {
-    localStorage.removeItem(STORAGE_KEY);
-    localStorage.removeItem(ROUND_HISTORY_KEY);
+    clearSessionState();
     clearAuditLog();
-    window.location.hash = '';
     setCapTable(INITIAL_CAP_TABLE);
     setAuditLog([]);
-    setRoundResult(null);
-    setRoundInputs(null);
-    setRoundHistory({ rounds: [] });
     setShowWizard(true);
   }
 
@@ -218,12 +214,7 @@ export default function App() {
     return (
       <OnboardingWizard
         onComplete={ct => {
-          const entry = { id: crypto.randomUUID?.() ?? Date.now().toString(), timestamp: new Date().toISOString(), action: 'import' as const, description: `Created cap table for "${ct.companyName}"` };
-          const newLog = appendToLog(auditLog, [entry]);
-          setCapTable(ct);
-          saveCapTable(ct);
-          setAuditLog(newLog);
-          saveAuditLog(newLog);
+          updateCapTable(ct, [makeImportEntry(ct.companyName)]);
           setShowWizard(false);
         }}
       />
@@ -402,12 +393,7 @@ export default function App() {
               <ImportExport
                 capTable={capTable}
                 onImport={ct => {
-                  const entry = makeImportEntry(ct.companyName);
-                  const newLog = appendToLog(auditLog, [entry]);
-                  setCapTable(ct);
-                  saveCapTable(ct);
-                  setAuditLog(newLog);
-                  saveAuditLog(newLog);
+                  updateCapTable(ct, [makeImportEntry(ct.companyName)]);
                   setRoundResult(null);
                   setRoundInputs(null);
                 }}
@@ -430,24 +416,18 @@ export default function App() {
 
       {/* Bottom tab bar — mobile only */}
       <nav className="md:hidden fixed bottom-0 left-0 right-0 bg-[#0b0d14] border-t border-slate-800 flex items-stretch z-40">
-        {NAV.map(({ id, label }) => {
-          const short: Record<string, string> = {
-            ledger: 'Ledger', simulator: 'Sim', multisim: 'Rounds',
-            waterfall: 'Waterfall', io: 'Export', audit: 'Audit',
-          };
-          return (
-            <button
-              key={id}
-              onClick={() => { setActivePanel(id); saveActivePanel(id); }}
-              className={`flex-1 flex flex-col items-center justify-center py-2 gap-0.5 text-[10px] transition-colors ${
-                activePanel === id ? 'text-white' : 'text-slate-600'
-              }`}
-            >
-              <div className={`w-1 h-1 rounded-full ${activePanel === id ? 'bg-sky-400' : 'bg-transparent'}`} />
-              {short[id] ?? label}
-            </button>
-          );
-        })}
+        {NAV.map(({ id, short }) => (
+          <button
+            key={id}
+            onClick={() => { setActivePanel(id); saveActivePanel(id); }}
+            className={`flex-1 flex flex-col items-center justify-center py-2 gap-0.5 text-[10px] transition-colors ${
+              activePanel === id ? 'text-white' : 'text-slate-600'
+            }`}
+          >
+            <div className={`w-1 h-1 rounded-full ${activePanel === id ? 'bg-sky-400' : 'bg-transparent'}`} />
+            {short}
+          </button>
+        ))}
       </nav>
     </div>
   );

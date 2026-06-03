@@ -40,44 +40,36 @@ export default function WaterfallView({ capTable, roundResult, roundInputs, roun
 
   const hasMultiRound = roundHistory.rounds.length > 0;
 
-  // Current valuation marker: last round's post-money, or single sim, or 409A × shares
-  const currentValuation = useMemo(() => {
-    if (hasMultiRound && roundHistory.rounds.length > 0) {
-      return roundHistory.rounds[roundHistory.rounds.length - 1].result.postMoneyValuation;
+  // Single memo: iterate roundHistory.rounds once to get both the final cap table
+  // and the current valuation marker, then compute the waterfall rows.
+  const { currentValuation, rows } = useMemo(() => {
+    if (hasMultiRound) {
+      let ct = capTable;
+      for (const r of roundHistory.rounds) ct = applyRoundToCapTable(ct, r);
+      const lastRound = roundHistory.rounds[roundHistory.rounds.length - 1];
+      return {
+        currentValuation: lastRound.result.postMoneyValuation as number | null,
+        rows: computeWaterfall(ct, null, exitValuation),
+      };
     }
-    if (roundResult) return roundResult.postMoneyValuation;
-    if (capTable.fmvPerShare) {
+    let currentValuation: number | null = null;
+    if (roundResult) {
+      currentValuation = roundResult.postMoneyValuation;
+    } else if (capTable.fmvPerShare) {
       const totalShares = capTable.securities.reduce((s, sec) => {
         if (sec.kind === 'common' || sec.kind === 'option' || sec.kind === 'preferred') return s + sec.shares;
         return s;
       }, 0);
-      return capTable.fmvPerShare * totalShares;
+      currentValuation = capTable.fmvPerShare * totalShares;
     }
-    return null;
-  }, [capTable, roundResult, roundHistory, hasMultiRound]);
-
-  // When multi-round history exists, apply all rounds to get the final cap table
-  // and pass it directly — no separate roundResult needed since all preferred
-  // series are already represented as securities in the final table.
-  const finalCapTable = useMemo(() => {
-    if (!hasMultiRound) return capTable;
-    let ct = capTable;
-    for (const r of roundHistory.rounds) ct = applyRoundToCapTable(ct, r);
-    return ct;
-  }, [capTable, roundHistory, hasMultiRound]);
-
-  const rows = useMemo(
-    () =>
-      hasMultiRound
-        ? computeWaterfall(finalCapTable, null, exitValuation)
-        : computeWaterfall(
-            capTable,
-            roundResult,
-            exitValuation,
-            roundInputs ? { ...roundInputs, conversionDate: new Date() } : undefined,
-          ),
-    [capTable, finalCapTable, roundResult, roundInputs, roundHistory, exitValuation, hasMultiRound],
-  );
+    return {
+      currentValuation,
+      rows: computeWaterfall(
+        capTable, roundResult, exitValuation,
+        roundInputs ? { ...roundInputs, conversionDate: new Date() } : undefined,
+      ),
+    };
+  }, [capTable, roundResult, roundInputs, roundHistory, exitValuation, hasMultiRound]);
 
   const totalPayout = rows.reduce((s, r) => s + r.totalPayout, 0);
   const activeRows = rows.filter(r => r.totalPayout > 0);
