@@ -15,6 +15,7 @@ import WaterfallView from './components/WaterfallView';
 import ImportExport from './components/ImportExport';
 import MultiRoundSimulator from './components/MultiRoundSimulator';
 import AuditLogView from './components/AuditLogView';
+import OnboardingWizard from './components/OnboardingWizard';
 
 type Panel = 'ledger' | 'simulator' | 'multisim' | 'waterfall' | 'io' | 'audit';
 
@@ -61,6 +62,12 @@ export default function App() {
   const [roundInputs, setRoundInputs] = useState<SimulatorInputs | null>(null);
   const [roundHistory, setRoundHistory] = useState<RoundHistory>({ rounds: [] });
   const [auditLog, setAuditLog] = useState<AuditLog>(loadAuditLog);
+  const [showWizard, setShowWizard] = useState(() => {
+    // Show wizard only on a genuine first visit: no saved session, no shared URL
+    const hasHash = window.location.hash.length > 1;
+    const hasSaved = !!localStorage.getItem(STORAGE_KEY);
+    return !hasHash && !hasSaved;
+  });
   const [shareCopied, setShareCopied] = useState(false);
   const [savedFlash, setSavedFlash] = useState(false);
   const [editingField, setEditingField] = useState<'name' | 'auth' | null>(null);
@@ -124,6 +131,18 @@ export default function App() {
     setRoundInputs(null);
   }
 
+  function startNewCompany() {
+    localStorage.removeItem(STORAGE_KEY);
+    clearAuditLog();
+    window.location.hash = '';
+    setCapTable(INITIAL_CAP_TABLE);
+    setAuditLog([]);
+    setRoundResult(null);
+    setRoundInputs(null);
+    setRoundHistory({ rounds: [] });
+    setShowWizard(true);
+  }
+
   function handleShare() {
     const encoded = encodeCapTableToHash(capTable);
     window.location.hash = encoded;
@@ -150,6 +169,22 @@ export default function App() {
     if (sec.kind === 'convertible_note') return s + sec.principalAmount;
     return s;
   }, 0);
+
+  if (showWizard) {
+    return (
+      <OnboardingWizard
+        onComplete={ct => {
+          const entry = { id: crypto.randomUUID?.() ?? Date.now().toString(), timestamp: new Date().toISOString(), action: 'import' as const, description: `Created cap table for "${ct.companyName}"` };
+          const newLog = appendToLog(auditLog, [entry]);
+          setCapTable(ct);
+          saveCapTable(ct);
+          setAuditLog(newLog);
+          saveAuditLog(newLog);
+          setShowWizard(false);
+        }}
+      />
+    );
+  }
 
   return (
     <div className="min-h-screen bg-[#0b0d14] text-slate-200 font-mono flex flex-col">
@@ -303,6 +338,7 @@ export default function App() {
                   setRoundInputs(null);
                 }}
                 onReset={resetToDefault}
+                onNewCompany={startNewCompany}
               />
             )}
             {activePanel === 'audit' && (
