@@ -1,11 +1,13 @@
 import { useState } from 'react';
 import type { CapTable, RoundResult } from './engine/captable';
+import { encodeCapTableToHash, decodeCapTableFromHash } from './engine/captable';
 import { INITIAL_CAP_TABLE } from './data/mockData';
 import LedgerView from './components/LedgerView';
 import RoundSimulator from './components/RoundSimulator';
 import type { SimulatorInputs } from './components/RoundSimulator';
 import WaterfallView from './components/WaterfallView';
 import ImportExport from './components/ImportExport';
+
 type Panel = 'ledger' | 'simulator' | 'waterfall' | 'io';
 
 const NAV: { id: Panel; label: string }[] = [
@@ -15,11 +17,37 @@ const NAV: { id: Panel; label: string }[] = [
   { id: 'io', label: 'Import / Export' },
 ];
 
+function loadInitialCapTable(): CapTable {
+  const hash = window.location.hash;
+  if (hash.length > 1) {
+    const decoded = decodeCapTableFromHash(hash.slice(1));
+    if (decoded) return decoded;
+  }
+  return INITIAL_CAP_TABLE;
+}
+
 export default function App() {
-  const [capTable, setCapTable] = useState<CapTable>(INITIAL_CAP_TABLE);
+  const [capTable, setCapTable] = useState<CapTable>(loadInitialCapTable);
   const [activePanel, setActivePanel] = useState<Panel>('ledger');
   const [roundResult, setRoundResult] = useState<RoundResult | null>(null);
   const [roundInputs, setRoundInputs] = useState<SimulatorInputs | null>(null);
+  const [shareCopied, setShareCopied] = useState(false);
+
+  function handleShare() {
+    const encoded = encodeCapTableToHash(capTable);
+    window.location.hash = encoded;
+    const url = window.location.href;
+    navigator.clipboard.writeText(url).catch(() => {
+      const ta = document.createElement('textarea');
+      ta.value = url;
+      document.body.appendChild(ta);
+      ta.select();
+      document.execCommand('copy');
+      document.body.removeChild(ta);
+    });
+    setShareCopied(true);
+    setTimeout(() => setShareCopied(false), 2500);
+  }
 
   const totalPreShares = capTable.securities.reduce((s, sec) => {
     if (sec.kind === 'common' || sec.kind === 'option' || sec.kind === 'preferred') return s + sec.shares;
@@ -43,7 +71,7 @@ export default function App() {
           </span>
           <span className="text-xs text-slate-500">Cap Table</span>
         </div>
-        <div className="flex items-center gap-6 text-xs text-slate-500">
+        <div className="flex items-center gap-5 text-xs text-slate-500">
           <span>
             <span className="text-slate-300">{totalPreShares.toLocaleString()}</span> shares issued
           </span>
@@ -53,6 +81,16 @@ export default function App() {
           <span>
             Auth: <span className="text-slate-300">{capTable.authorizedShares.toLocaleString()}</span>
           </span>
+          <button
+            onClick={handleShare}
+            className={`px-3 py-1.5 rounded border text-xs transition-colors ${
+              shareCopied
+                ? 'border-emerald-600 text-emerald-400 bg-emerald-900/20'
+                : 'border-slate-600 text-slate-300 hover:border-slate-400 hover:text-white'
+            }`}
+          >
+            {shareCopied ? 'Link copied!' : 'Share'}
+          </button>
         </div>
       </header>
 

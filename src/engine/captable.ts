@@ -615,3 +615,24 @@ export function serializeCapTable(capTable: CapTable): string {
 export function deserializeCapTable(json: string): CapTable {
   return JSON.parse(json) as CapTable;
 }
+
+// ─── URL Hash Encoding ────────────────────────────────────────────────────────
+
+import { compressToEncodedURIComponent, decompressFromEncodedURIComponent } from 'lz-string';
+
+export function encodeCapTableToHash(capTable: CapTable): string {
+  return compressToEncodedURIComponent(JSON.stringify(capTable));
+}
+
+export function decodeCapTableFromHash(hash: string): CapTable | null {
+  try {
+    const raw = hash.startsWith('#') ? hash.slice(1) : hash;
+    const json = decompressFromEncodedURIComponent(raw);
+    if (!json) return null;
+    const ct = JSON.parse(json) as CapTable;
+    if (!Array.isArray(ct.stakeholders) || !Array.isArray(ct.securities)) return null;
+    return ct;
+  } catch {
+    return null;
+  }
+}
